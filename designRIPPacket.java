@@ -3,15 +3,13 @@
 import java.util.ArrayList;
 
 public class designRIPPacket {
+    public static final int INFINITY = 16;
 
     public static byte[] convertToByte(ArrayList<routingData> routingTab) {
         byte[] buffer = new byte[504];
         int i, k;
         String[] ops;
         k = 6;
-        //Main data
-//        try {
-
         for (i = 0; i < routingTab.size(); i++) {
             buffer[k] = (byte) routingTab.get(i).nodenum;
             buffer[++k] = (byte) routingTab.get(i).destination;
@@ -19,21 +17,15 @@ public class designRIPPacket {
             for (int j = 0; j < 4; j++) {
                 buffer[++k] = (byte) Integer.parseInt(ops[j]);
             }
-            for (int j = 0; j < 4; j++) {
-                buffer[++k] = (byte) Integer.parseInt(ops[j]);
-            }
-            k += 4;
+            k += 8;
             buffer[k] = (byte) routingTab.get(i).hopCount;
             k += 4;
         }
-
-//        }catch (Exception e){
-//            System.out.println(k);
-//            e.printStackTrace();
-//        }
         return buffer;
 
     }
+
+
 
     public static boolean updateList(
             ArrayList<routingData> routingTab, byte[] data, int i) {
@@ -62,8 +54,7 @@ public class designRIPPacket {
                 break;
             }
         }
-//        System.out.println("router 1 found: "+routerFound1);
-//        System.out.println("router 2 found: "+routerFound2);
+
         index = index1;
         for (int range = 0; range < 2; range++ ){
             if (routerFound1) {
@@ -83,8 +74,10 @@ public class designRIPPacket {
                     }
 
                 }
+                routingTab.get(index).changeTime = System.currentTimeMillis();
+
                 if (routerFound2){
-//                    System.out.println(convertVals.getValue(data[20]));
+
                     if (routingTab.get(index2).hopCount-1 > convertVals.getValue(data[20])){
                         for (int j = i + 6; j < i + 24; j++) {
                             recNodeNum = convertVals.getValue(data[j]);
@@ -98,6 +91,7 @@ public class designRIPPacket {
                             routingTab.get(index2).sethopCount(hop+1);
                             routingTab.get(index2).setIp(ip);
                             routingTab.get(index2).setDestination(destination);
+                            routingTab.get(index2).changeTime = System.currentTimeMillis();
                         }
                         updated=true;
                     }
@@ -112,8 +106,10 @@ public class designRIPPacket {
                         hop = convertVals.getValue(data[++j]);
                         j+=3;
                         routingTab.add(new routingData(ip, hop + 1,
-                                routingTab.get(0).getNodenum(), destination));
+                                routingTab.get(0).getNodenum(),
+                                destination,System.currentTimeMillis()));
                         routingTab.get(routingTab.size()-1).setNextHop(recNodeNum);
+                        routingTab.get(routingTab.size()-1).changeTime = System.currentTimeMillis();
                     }
                     updated=true;
                     routerFound1 = true;
@@ -122,20 +118,16 @@ public class designRIPPacket {
 
                 for (int j = i + 6; j < i + 24; j++) {
                     recNodeNum = convertVals.getValue(data[j]);
-                    System.out.println("source "+ recNodeNum);
                     destination = convertVals.getValue(data[++j]);
-                    System.out.println("dest "+destination);
                     ip = convertVals.getValue(data, ++j, j += 3, ".");
-                    System.out.println("ip "+ip);
                     j += 4;
                     j += 4;
                     hop = convertVals.getValue(data[++j]);
                     j+=3;
-//                    hop = 1;
-                    System.out.println("hop = "+hop);
                     routingTab.add(new routingData(ip, hop + 1,
-                            routingTab.get(0).getNodenum(), recNodeNum));
-                    System.out.println(routingTab.get(routingTab.size()-1).getIp());
+                            routingTab.get(0).getNodenum(),
+                            recNodeNum,System.currentTimeMillis()));
+                    routingTab.get(routingTab.size()-1).changeTime = System.currentTimeMillis();
                     updated = true;
 
                 }
@@ -148,6 +140,15 @@ public class designRIPPacket {
         }
         return updated;
     }
+
+    public static boolean deleteRouter(ArrayList<routingData> routingTab, int i){
+        if (routingTab.size()<i){
+            return false;
+        }
+        routingTab.get(i).sethopCount(INFINITY);
+        return true;
+    }
+
 
 
 }

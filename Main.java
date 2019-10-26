@@ -29,7 +29,7 @@ public class Main implements Runnable{
     public void listner(){
         try {
             byte[] buffer = new byte[504];
-            int recNodeNum = 0;
+            int recNodeNum;
             MulticastSocket ms = new MulticastSocket(portNum);
             InetAddress group = InetAddress.getByName(broadCastIP);
             ms.joinGroup(group);
@@ -53,6 +53,18 @@ public class Main implements Runnable{
                     }
 
                 }
+                if (updated){
+                    for (int ind = 0; ind < routingList.size();ind++){
+                        if (!(routingList.get(ind).gethopCount()==INFINITY)) {
+                            System.out.println("Source " + routingList.get(ind).nodenum);
+                            System.out.println("Destination " + routingList.get(ind).destination);
+                            System.out.println("IP " + routingList.get(ind).getIp());
+                            System.out.println("Next Hop " + routingList.get(ind).getNextHop());
+                            System.out.println("Hop count " + routingList.get(ind).gethopCount());
+                        }
+                    }
+                    updated=false;
+                }
                 if(data[0]==-29){
                     break;
                 }
@@ -63,17 +75,16 @@ public class Main implements Runnable{
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
     public synchronized void tableChanges(int optype,int i){
         // Read operation
         if (optype==0){
             msg = designRIPPacket.convertToByte(routingList);
-        }else{
+        }else if(optype==1){
             updated = designRIPPacket.updateList(routingList,data,i);
-//            System.out.println(updated);
-
+        }else if (optype==2){
+            updated = designRIPPacket.deleteRouter(routingList,i);
         }
 
     }
@@ -82,13 +93,33 @@ public class Main implements Runnable{
         try {
             DatagramSocket ds = new DatagramSocket();
             InetAddress destIP = InetAddress.getByName(broadCastIP);
-
             tableChanges(0,0);
             DatagramPacket dp = new DatagramPacket(msg,msg.length,destIP,portNum);
             ds.send(dp);
             ds.close();
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    public void testRouterOutOfReach(){
+        long currTime=0;
+        int currHop ;
+        while (true){
+            for (int range = 0; range<routingList.size();range++){
+
+                currHop=routingList.get(range).gethopCount();
+                System.out.print("");
+                if (currHop==1){
+                    currTime = System.currentTimeMillis();
+                    if (currTime-routingList.get(range).changeTime >10000){
+//                        System.out.println("Path not available");
+                        // Delete from router by making the distance as Infinite i.e. 16.
+                        tableChanges(2,range);
+                    }
+
+                }
+            }
         }
     }
 
@@ -107,7 +138,8 @@ public class Main implements Runnable{
                 InetAddress hostAdd  = InetAddress.getLocalHost();
                 String address = hostAdd.getHostAddress().trim();
                 System.out.println("Address is "+ address);
-                routingList.add(new routingData(address,0,nodeVal,nodeVal));
+                routingList.add(new routingData(address,0,
+                        nodeVal,nodeVal,System.currentTimeMillis()));
 
                 Thread client=new Thread(new Main(63001,nodeVal,
                         "230.230.230.230",0));
@@ -115,6 +147,9 @@ public class Main implements Runnable{
                 Thread server =new Thread(new Main(63001,nodeVal,
                         "230.230.230.230",1));
                 server.start();
+                Thread routerCheck =new Thread(new Main(63001,nodeVal,
+                        "230.230.230.230",2));
+                routerCheck.start();
 
             } catch (UnknownHostException e) {
                 e.printStackTrace();
@@ -132,32 +167,19 @@ public class Main implements Runnable{
     @Override
     public void run() {
         if (this.type==0){
-//            while (true){
             listner();
-            if (!updated){
-                System.out.println("oops");
-//                    try {
-//                        Thread.sleep(5000);
-//                    } catch (InterruptedException e) {
-//                        e.printStackTrace();
-//                    }
-            }else {
-                //Trigger updates
-//                    System.out.println("print size" + routingList.size());
-                for (int ind = 0; ind < routingList.size();ind++){
-                    System.out.println("Source "+routingList.get(ind).nodenum);
-                    System.out.println("Destination "+routingList.get(ind).destination);
-                    System.out.println("IP "+routingList.get(ind).getIp());
-                    System.out.println("Next Hop "+routingList.get(ind).getNextHop());
-                    System.out.println("Hop count "+routingList.get(ind).gethopCount());
-                }
-                updated=false;
-            }
-
         }else if (this.type==1){
             while (true) {
                 sendPackets();
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
+        }else if (this.type==2){
+            System.out.println("Initiate checks");
+            testRouterOutOfReach();
         }
     }
 }
