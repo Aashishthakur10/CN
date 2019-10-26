@@ -5,7 +5,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 /**
- * This is used to send the data to any listening router using multicasting.
+ * This is used to send the data to any listening Main using multicasting.
  * Using threads, we advertise our node number and share the ip address.
  *
  */

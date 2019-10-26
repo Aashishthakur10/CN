@@ -42,6 +42,10 @@ public class convertVals {
             if (i == j){
                 delimiter = "";
             }
+            if (delimiter.equals("") && buffer[i]==0){
+                i+=1;
+                continue;
+            }
             result.append(getValue(buffer[i])).append(delimiter);
 
             i+= 1;

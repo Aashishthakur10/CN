@@ -6,7 +6,7 @@ import java.net.InetAddress;
 import java.net.MulticastSocket;
 
 /**
- * This is used to listen to the router using multicasting.
+ * This is used to listen to the Main using multicasting.
  * Using threads, we advertise our node number and share the ip address.
  *
  */
