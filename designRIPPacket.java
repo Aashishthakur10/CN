@@ -69,7 +69,7 @@ public class designRIPPacket {
             if (routerFound1) {
                 if (!((routingTab.get(index)).gethopCount() == 1)) {
                     for (int j = i + 6; j < i + 24; j++) {
-                        routingTab.get(index).setNodenum(convertVals.getValue(data[j]));//6
+                        routingTab.get(index).setNodenum(routingTab.get(index).getNodenum());//6
                         routingTab.get(index).setDestination(convertVals.getValue(data[++j]));//7
                         ip = convertVals.getValue(data, ++j, j = j + 3, ".");//8,9,10,11
                         routingTab.get(index).setIp(ip);
@@ -114,7 +114,7 @@ public class designRIPPacket {
                         hop = convertVals.getValue(data[++j]);//20
                         j+=3;//21,22,23
                         routingTab.add(new routingData(ip, hop + 1,
-                                routingTab.get(0).getNodenum(),
+                                routingTab.get(index).getNodenum(),
                                 destination,System.currentTimeMillis()));
                         routingTab.get(routingTab.size()-1).setNextHop(recNodeNum);
                         routingTab.get(routingTab.size()-1).changeTime = System.currentTimeMillis();
