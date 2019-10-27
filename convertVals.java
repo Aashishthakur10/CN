@@ -5,13 +5,14 @@
  *
  * @author  Aashish Thakur(at1948@rit.edu)
  * @version 1.0
+ * @since 07/09/2019
  */
 
 public class convertVals {
 
 
     /**
-     * Returns the int of a given byte.
+     * Returns the hex of a given byte.
      *
      * @param value         Single byte which is to be processed,
      *
@@ -24,7 +25,7 @@ public class convertVals {
 
 
     /**
-     * Returns the int of given bytes.
+     * Returns the hex of given bytes.
      *
      * @param buffer        Buffer array contains the bytes which are to be processed,
      * @param i             i is the starting index
@@ -41,7 +42,7 @@ public class convertVals {
             if (i == j){
                 delimiter = "";
             }
-            if (delimiter.equals("") && buffer[i]==0){
+            else if (delimiter.equals("") && buffer[i]==0){
                 i+=1;
                 continue;
             }

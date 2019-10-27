@@ -13,12 +13,13 @@ public class routingData
     String subnet;
     long changeTime;
 
-    public routingData(String IP, int hopCount, int nodenum, int destination, long changeTime){
+    public routingData(String IP, int hopCount, int nodenum, int destination, long changeTime, String subnet){
         this.ip = IP;
         this.hopCount = hopCount;
         this.nodenum = nodenum;
         this.destination = destination;
         this.changeTime = changeTime;
+        this.subnet =  subnet;
     }
 
     public int getDestination() {
@@ -43,6 +44,10 @@ public class routingData
 
     public void setSubnet(String subnet){
         this.subnet = subnet;
+    }
+
+    public String getSubnet() {
+        return subnet;
     }
 
     public void setNodenum(int nodenum) {

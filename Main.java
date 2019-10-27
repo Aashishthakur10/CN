@@ -102,14 +102,13 @@ public class Main implements Runnable{
 
 
         //If updates then print.
-
         if (updated){
             System.out.println("New start\n");
             for (int ind = 0; ind < routingList.size();ind++){
                 if (routingList.get(ind).gethopCount() != INFINITY) {
                     System.out.println("Source " + routingList.get(ind).nodenum);
                     System.out.println("Destination " + routingList.get(ind).destination);
-                    System.out.println("IP " + routingList.get(ind).getIp());
+                    System.out.println("IP " + routingList.get(ind).getIp()+"/24");
                     System.out.println("Next Hop " + routingList.get(ind).getNextHop());
                     System.out.println("Hop count " + routingList.get(ind).gethopCount());
 
@@ -179,8 +178,9 @@ public class Main implements Runnable{
                 InetAddress hostAdd  = InetAddress.getLocalHost();
                 String address = hostAdd.getHostAddress().trim();
                 System.out.println("Address is "+ address);
-                routingList.add(new routingData(address,0,
-                        nodeVal,nodeVal,System.currentTimeMillis()));
+                String IP = "10.0."+nodeVal+".0";
+                routingList.add(new routingData(IP,0,
+                        nodeVal,nodeVal,System.currentTimeMillis(),address));
                 //Sending thread
                 Thread client=new Thread(new Main(520,nodeVal,
                         "230.230.230.230",0));
@@ -221,7 +221,6 @@ public class Main implements Runnable{
                 }
             }
         }else if (this.type==2){
-//            System.out.println("Initiate checks");
             testRouterOutOfReach();
         }
     }

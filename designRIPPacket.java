@@ -45,7 +45,7 @@ public class designRIPPacket {
             k += 3;
         }
 
-        System.out.println("packets: "+k);
+//        System.out.println("packets: "+k);
 
         return buffer;
 
@@ -102,7 +102,7 @@ public class designRIPPacket {
                         ip = convertVals.getValue(data, ++j, j = j + 3, ".");//8,9,10,11
                         routingTab.get(index).setIp(ip);
                         j += 4;//12,13,14,15
-                        routingTab.get(index).setSubnet(ip + "/24");
+//                        routingTab.get(index).setSubnet(ip + "/24");
                         j += 4;//16,17,18,19
                         routingTab.get(index).sethopCount(1);
                         routingTab.get(index).setNextHop(0);
@@ -148,7 +148,7 @@ public class designRIPPacket {
                         j+=3;//21,22,23
                         routingTab.add(new routingData(ip, hop + 1,
                                 routingTab.get(index).getNodenum(),
-                                destination,System.currentTimeMillis()));
+                                destination,System.currentTimeMillis(),routingTab.get(index).getSubnet()));
                         routingTab.get(routingTab.size()-1).setNextHop(recNodeNum);
                         routingTab.get(routingTab.size()-1).changeTime = System.currentTimeMillis();
                     }
@@ -168,7 +168,7 @@ public class designRIPPacket {
                     j+=3;//21,22,23
                     routingTab.add(new routingData(ip, hop + 1,
                             routingTab.get(0).getNodenum(),
-                            recNodeNum,System.currentTimeMillis()));
+                            recNodeNum,System.currentTimeMillis(),routingTab.get(index).getSubnet()));
                     routingTab.get(routingTab.size()-1).changeTime = System.currentTimeMillis();
                     updated = true;
 
@@ -195,7 +195,6 @@ public class designRIPPacket {
         if (routingTab.size()<i){
             return false;
         }
-//        routingTab.get(i).sethopCount(INFINITY);
         routingTab.remove(i);
         return true;
     }
