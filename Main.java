@@ -6,7 +6,6 @@ import java.util.ArrayList;
 
 public class Main implements Runnable{
 
-    //    public static DatagramSocket ds;
     // Port, node numbers with broadcast ip.
     int portNum;
     int nodeNum;
@@ -38,33 +37,23 @@ public class Main implements Runnable{
                 DatagramPacket dp = new DatagramPacket(buffer,buffer.length);
                 ms.receive(dp);
                 data = dp.getData();
+
                 for (int i=0; i<data.length;i++){
-                    recNodeNum=data[i+6];
+                    recNodeNum= convertVals.getValue(data[i+6]);
                     // No source
                     if (recNodeNum==0){
                         break;
                     }else{
                         if (recNodeNum==nodeNum){
-                            i+=26;
+                            i+=22;
                         }else{
                             tableChanges(1,i);
-                            i+=26;
+                            i+=22;
                         }
                     }
 
                 }
-                if (updated){
-                    for (int ind = 0; ind < routingList.size();ind++){
-                        if (!(routingList.get(ind).gethopCount()==INFINITY)) {
-                            System.out.println("Source " + routingList.get(ind).nodenum);
-                            System.out.println("Destination " + routingList.get(ind).destination);
-                            System.out.println("IP " + routingList.get(ind).getIp());
-                            System.out.println("Next Hop " + routingList.get(ind).getNextHop());
-                            System.out.println("Hop count " + routingList.get(ind).gethopCount());
-                        }
-                    }
-                    updated=false;
-                }
+
                 if(data[0]==-29){
                     break;
                 }
@@ -85,6 +74,22 @@ public class Main implements Runnable{
             updated = designRIPPacket.updateList(routingList,data,i);
         }else if (optype==2){
             updated = designRIPPacket.deleteRouter(routingList,i);
+        }
+        if (updated){
+
+            System.out.println("New start\n");
+            for (int ind = 0; ind < routingList.size();ind++){
+                if (routingList.get(ind).gethopCount() != INFINITY) {
+                    System.out.println("Source " + routingList.get(ind).nodenum);
+                    System.out.println("Destination " + routingList.get(ind).destination);
+                    System.out.println("IP " + routingList.get(ind).getIp());
+                    System.out.println("Next Hop " + routingList.get(ind).getNextHop());
+                    System.out.println("Hop count " + routingList.get(ind).gethopCount());
+
+                }
+            }
+            System.out.println("End\n");
+            updated=false;
         }
 
     }
@@ -113,8 +118,8 @@ public class Main implements Runnable{
                 if (currHop==1){
                     currTime = System.currentTimeMillis();
                     if (currTime-routingList.get(range).changeTime >10000){
-//                        System.out.println("Path not available");
                         // Delete from router by making the distance as Infinite i.e. 16.
+                        // or remove entry.
                         tableChanges(2,range);
                     }
 
@@ -141,13 +146,13 @@ public class Main implements Runnable{
                 routingList.add(new routingData(address,0,
                         nodeVal,nodeVal,System.currentTimeMillis()));
 
-                Thread client=new Thread(new Main(63001,nodeVal,
+                Thread client=new Thread(new Main(520,nodeVal,
                         "230.230.230.230",0));
                 client.start();
-                Thread server =new Thread(new Main(63001,nodeVal,
+                Thread server =new Thread(new Main(520,nodeVal,
                         "230.230.230.230",1));
                 server.start();
-                Thread routerCheck =new Thread(new Main(63001,nodeVal,
+                Thread routerCheck =new Thread(new Main(520,nodeVal,
                         "230.230.230.230",2));
                 routerCheck.start();
 
@@ -178,7 +183,7 @@ public class Main implements Runnable{
                 }
             }
         }else if (this.type==2){
-            System.out.println("Initiate checks");
+//            System.out.println("Initiate checks");
             testRouterOutOfReach();
         }
     }
