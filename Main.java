@@ -4,6 +4,13 @@ import java.io.IOException;
 import java.net.*;
 import java.util.ArrayList;
 
+/**
+ * This program implements a RIP based router which can interact and exchange data
+ * with similar routers.
+ *
+ * @author Aashish Thakur(at1948@rit.edu)
+ * @version 1.0
+ */
 public class Main implements Runnable{
 
     // Port, node numbers with broadcast ip.
@@ -17,6 +24,7 @@ public class Main implements Runnable{
     static ArrayList<routingData> routingList = new ArrayList<>();
     public static final int INFINITY = 16;
 
+    //Constructor
     public Main(int portNum, int nodeNum, String broadCastIP, int type) {
         this.portNum = portNum;
         this.nodeNum = nodeNum;
@@ -24,7 +32,11 @@ public class Main implements Runnable{
         this.type = type;
     }
 
-
+    /**
+     * Listener thread receives the bytes and checks if any changes have
+     * to be done to current routing table.
+     *
+     */
     public void listner(){
         try {
             byte[] buffer = new byte[504];
@@ -38,15 +50,18 @@ public class Main implements Runnable{
                 ms.receive(dp);
                 data = dp.getData();
 
+                //Check the received byte array RIP packet for changes.
                 for (int i=0; i<data.length;i++){
                     recNodeNum= convertVals.getValue(data[i+6]);
                     // No source
                     if (recNodeNum==0){
                         break;
                     }else{
+                        //Skip if self data.
                         if (recNodeNum==nodeNum){
                             i+=22;
                         }else{
+                            //Make changes and increment.
                             tableChanges(1,i);
                             i+=22;
                         }
@@ -54,11 +69,13 @@ public class Main implements Runnable{
 
                 }
 
+
                 if(data[0]==-29){
                     break;
                 }
             }
 
+            //End session
             ms.leaveGroup(group);
             ms.close();
         } catch (IOException e) {
@@ -66,6 +83,13 @@ public class Main implements Runnable{
         }
     }
 
+
+    /**
+     * Synchronized access to the Routing table for read, write and deletion.
+     *
+     * @param optype                0 = Read, 1 = Write, 2 = Deletion
+     * @param i                     index
+     */
     public synchronized void tableChanges(int optype,int i){
         // Read operation
         if (optype==0){
@@ -75,8 +99,11 @@ public class Main implements Runnable{
         }else if (optype==2){
             updated = designRIPPacket.deleteRouter(routingList,i);
         }
-        if (updated){
 
+
+        //If updates then print.
+
+        if (updated){
             System.out.println("New start\n");
             for (int ind = 0; ind < routingList.size();ind++){
                 if (routingList.get(ind).gethopCount() != INFINITY) {
@@ -94,6 +121,10 @@ public class Main implements Runnable{
 
     }
 
+    /**
+     * Broadcast the packets to all the neighbours.
+     *
+     */
     public void sendPackets(){
         try {
             DatagramSocket ds = new DatagramSocket();
@@ -107,6 +138,11 @@ public class Main implements Runnable{
         }
     }
 
+    /**
+     * Thread to check if the neighbouring routers are still reachable. If not,
+     * then delete their entry.
+     *
+     */
     public void testRouterOutOfReach(){
         long currTime=0;
         int currHop ;
@@ -145,13 +181,15 @@ public class Main implements Runnable{
                 System.out.println("Address is "+ address);
                 routingList.add(new routingData(address,0,
                         nodeVal,nodeVal,System.currentTimeMillis()));
-
+                //Sending thread
                 Thread client=new Thread(new Main(520,nodeVal,
                         "230.230.230.230",0));
                 client.start();
+                //Receiving Thread
                 Thread server =new Thread(new Main(520,nodeVal,
                         "230.230.230.230",1));
                 server.start();
+                //Checking thread.
                 Thread routerCheck =new Thread(new Main(520,nodeVal,
                         "230.230.230.230",2));
                 routerCheck.start();

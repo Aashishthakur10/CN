@@ -2,9 +2,24 @@
 
 import java.util.ArrayList;
 
+
+/**
+ * Used to either add, remove a router to the routing table, also used to convert the routing table
+ * into a RIP packet.
+ *
+ * @author Aashish Thakur(at1948@rit.edu)
+ * @version 1.0
+ */
 public class designRIPPacket {
     public static final int INFINITY = 16;
 
+    /**
+     * Converts the values of a given router into a RIP packet
+     *
+     *
+     * @param routingTab                Routing Table
+     * @return                          RIP packet
+     */
     public static byte[] convertToByte(ArrayList<routingData> routingTab) {
         byte[] buffer = new byte[504];
         int i, k;
@@ -37,6 +52,15 @@ public class designRIPPacket {
     }
 
 
+    /**
+     * Updates the arraylist which maintains the values for a given router
+     *
+     *
+     * @param routingTab                Routing Table
+     * @param data                      RIP packet data
+     * @param i                         Index
+     * @return                          True if list updated.
+     */
 
     public static boolean updateList(
             ArrayList<routingData> routingTab, byte[] data, int i) {
@@ -49,6 +73,7 @@ public class designRIPPacket {
         boolean routerFound2 = false;
         int destination = 0, recNodeNum = 0, hop = 0;
 
+        // Check if the entries already exist in the table.
         for (index = 0; index < routingTab.size(); index++) {
 
             if (convertVals.getValue(data[i + 6]) == routingTab.get(index).destination) {
@@ -65,9 +90,12 @@ public class designRIPPacket {
         }
 
         index = index1;
+        //Loop over and update the table depending on the
+        //presence of the entries.
         for (int range = 0; range < 2; range++ ){
             if (routerFound1) {
-                if (!((routingTab.get(index)).gethopCount() == 1)) {
+                // If hop count is more than 1, then change.
+                if (routingTab.get(index).gethopCount() > 1) {
                     for (int j = i + 6; j < i + 24; j++) {
                         routingTab.get(index).setNodenum(routingTab.get(index).getNodenum());//6
                         routingTab.get(index).setDestination(convertVals.getValue(data[++j]));//7
@@ -83,8 +111,12 @@ public class designRIPPacket {
                     }
 
                 }
+
+                //update time
                 routingTab.get(index).changeTime = System.currentTimeMillis();
 
+                //If router destination is found, check if the hop count is less
+                // than current value, if so, update.
                 if (routerFound2){
                     if (routingTab.get(index2).hopCount-1 > convertVals.getValue(data[i+20])){
                         for (int j = i + 6; j < i + 24; j++) {
@@ -105,6 +137,7 @@ public class designRIPPacket {
                     }
                     routerFound2 = true;
                 }else{
+                    //If Router not present, then add the router.
                     for (int j = i + 6; j < i + 24; j++) {
                         recNodeNum = convertVals.getValue(data[j]);//6
                         destination = convertVals.getValue(data[++j]);//7
@@ -121,9 +154,10 @@ public class designRIPPacket {
                     }
                     updated=true;
                     routerFound1 = true;
+                    routerFound2 = true;
                 }
             } else {
-
+                //If neighbour not found first, add it and then check for its destination.
                 for (int j = i + 6; j < i + 24; j++) {
                     recNodeNum = convertVals.getValue(data[j]);//6
                     destination = convertVals.getValue(data[++j]);//7
@@ -149,6 +183,14 @@ public class designRIPPacket {
         return updated;
     }
 
+    /**
+     * If router not responding, delete entry.
+     *
+     *
+     * @param routingTab            Routing Table
+     * @param i                     Index for which entry has to be removed.
+     * @return                      True if entry removal successful.
+     */
     public static boolean deleteRouter(ArrayList<routingData> routingTab, int i){
         if (routingTab.size()<i){
             return false;
