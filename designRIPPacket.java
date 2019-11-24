@@ -45,8 +45,6 @@ public class designRIPPacket {
             k += 3;
         }
 
-//        System.out.println("packets: "+k);
-
         return buffer;
 
     }

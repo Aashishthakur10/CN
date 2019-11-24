@@ -1,229 +1,162 @@
-//package Project2;
+//package Project3;
 
+
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.*;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
-/**
- * This program implements a RIP based router which can interact and exchange data
- * with similar routers.
- *
- * @author Aashish Thakur(at1948@rit.edu)
- * @version 1.0
- */
-public class Main implements Runnable{
+public class Main implements Runnable {
+    //For those which weren't received
+    ArrayList<Integer> pendingVals = new ArrayList<>();
 
-    // Port, node numbers with broadcast ip.
-    int portNum;
-    int nodeNum;
-    String broadCastIP;
-    static boolean updated=false;
-    int type;
-    static byte []data;
-    static byte[] msg;
-    static ArrayList<routingData> routingList = new ArrayList<>();
-    public static final int INFINITY = 16;
+    //chunk static
+    final static int chunk = 500;
+    int type = 0;
+    //how much data is being sent over the network
+    static byte[] send = new byte[501];
+    //Contains the actual file
+    static byte[] source;
+    //sequence num
+    static int seq = 0;
+    //initdata sent
+    public static boolean initSuccessful = false;
+    //Completed the transfer
+    public static boolean done = false;
+    int lastChunk = 0;
+    public String destination;
+    public static String address;
 
-    //Constructor
-    public Main(int portNum, int nodeNum, String broadCastIP, int type) {
-        this.portNum = portNum;
-        this.nodeNum = nodeNum;
-        this.broadCastIP = broadCastIP;
+
+    public Main(int type, int lastChunk, String destination) {
         this.type = type;
+        this.lastChunk = lastChunk;
+        this.destination = destination;
     }
 
-    /**
-     * Listener thread receives the bytes and checks if any changes have
-     * to be done to current routing table.
-     *
-     */
-    public void listner(){
-        try {
-            byte[] buffer = new byte[504];
-            int recNodeNum;
-            MulticastSocket ms = new MulticastSocket(portNum);
-            InetAddress group = InetAddress.getByName(broadCastIP);
-            ms.joinGroup(group);
-
-            while (true){
-                DatagramPacket dp = new DatagramPacket(buffer,buffer.length);
-                ms.receive(dp);
-                data = dp.getData();
-
-                //Check the received byte array RIP packet for changes.
-                for (int i=0; i<data.length;i++){
-                    recNodeNum= convertVals.getValue(data[i+6]);
-                    // No source
-                    if (recNodeNum==0){
-                        break;
-                    }else{
-                        //Skip if self data.
-                        if (recNodeNum==nodeNum){
-                            i+=22;
-                        }else{
-                            //Make changes and increment.
-                            tableChanges(1,i);
-                            i+=22;
-                        }
-                    }
-
-                }
-
-
-                if(data[0]==-29){
-                    break;
-                }
-            }
-
-            //End session
-            ms.leaveGroup(group);
-            ms.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    /**
-     * Synchronized access to the Routing table for read, write and deletion.
-     *
-     * @param optype                0 = Read, 1 = Write, 2 = Deletion
-     * @param i                     index
-     */
-    public synchronized void tableChanges(int optype,int i){
-        // Read operation
-        if (optype==0){
-            msg = designRIPPacket.convertToByte(routingList);
-        }else if(optype==1){
-            updated = designRIPPacket.updateList(routingList,data,i);
-        }else if (optype==2){
-            updated = designRIPPacket.deleteRouter(routingList,i);
-        }
-
-
-        //If updates then print.
-        if (updated){
-            System.out.println("New start\n");
-            for (int ind = 0; ind < routingList.size();ind++){
-                if (routingList.get(ind).gethopCount() != INFINITY) {
-                    System.out.println("Source " + routingList.get(ind).nodenum);
-                    System.out.println("Destination " + routingList.get(ind).destination);
-                    System.out.println("IP " + routingList.get(ind).getIp()+"/24");
-                    System.out.println("Next Hop " + routingList.get(ind).getNextHop());
-                    System.out.println("Hop count " + routingList.get(ind).gethopCount());
-
-                }
-            }
-            System.out.println("End\n");
-            updated=false;
-        }
-
-    }
-
-    /**
-     * Broadcast the packets to all the neighbours.
-     *
-     */
-    public void sendPackets(){
-        try {
-            DatagramSocket ds = new DatagramSocket();
-            InetAddress destIP = InetAddress.getByName(broadCastIP);
-            tableChanges(0,0);
-            DatagramPacket dp = new DatagramPacket(msg,msg.length,destIP,portNum);
-            ds.send(dp);
-            ds.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Thread to check if the neighbouring routers are still reachable. If not,
-     * then delete their entry.
-     *
-     */
-    public void testRouterOutOfReach(){
-        long currTime=0;
-        int currHop ;
-        while (true){
-            for (int range = 0; range<routingList.size();range++){
-
-                currHop=routingList.get(range).gethopCount();
-                System.out.print("");
-                if (currHop==1){
-                    currTime = System.currentTimeMillis();
-                    if (currTime-routingList.get(range).changeTime >10000){
-                        // Delete from router by making the distance as Infinite i.e. 16.
-                        // or remove entry.
-                        tableChanges(2,range);
-                    }
-
-                }
-            }
-        }
-    }
-
-
-    /**
-     * The main program. Calls the functions for sending and receiving data
-     * for a Main in a multi-threaded environment.
-     *
-     */
     public static void main(String[] args) {
-        if(args.length>0 && Integer.parseInt(args[0]) > 0){
-            //Node number
-            int nodeVal = Integer.parseInt(args[0]);
-            try {
-                // Host ip
+        FileInputStream content = null;
+
+        try {
+            //Do init config
+            if (args.length == 2) {
+                //Get file name.
+                String fname = args[0];
+                ByteBuffer bb = ByteBuffer.allocate(8);
                 InetAddress hostAdd  = InetAddress.getLocalHost();
-                String address = hostAdd.getHostAddress().trim();
-                System.out.println("Address is "+ address);
-                String IP = "10.0."+nodeVal+".0";
-                routingList.add(new routingData(IP,0,
-                        nodeVal,nodeVal,System.currentTimeMillis(),address));
-                //Sending thread
-                Thread client=new Thread(new Main(520,nodeVal,
-                        "230.230.230.230",0));
+                address = hostAdd.getHostAddress().trim();
+
+                //Destination
+                InetAddress ip = InetAddress.getByName(args[1]);
+                content = new FileInputStream(new File(fname));
+                source = content.readAllBytes();
+                //Last chunk
+                int lastChunk = init(source);
+                DatagramSocket ds0 = new DatagramSocket();
+                bb.putInt(source.length).putInt(lastChunk);
+                byte[] size = bb.array();
+
+                //Init connection
+                DatagramPacket dp = new DatagramPacket(size, size.length, ip, 63001);
+                ds0.send(dp);
+
+                //successfully sent check introduction needed
+                initSuccessful = true;
+
+                Thread client = new Thread(new Main(0, lastChunk,args[1]));
                 client.start();
-                //Receiving Thread
-                Thread server =new Thread(new Main(520,nodeVal,
-                        "230.230.230.230",1));
-                server.start();
-                //Checking thread.
-                Thread routerCheck =new Thread(new Main(520,nodeVal,
-                        "230.230.230.230",2));
-                routerCheck.start();
-
-            } catch (UnknownHostException e) {
-                e.printStackTrace();
+                Thread checkArrayList = new Thread(new Main(1, lastChunk,args[1]));
+                checkArrayList.start();
+                if (done)
+                    content.close();
+            } else {
+                System.err.println("File name or Server IP not given");
+                System.exit(1);
             }
-            while (true)
-                ;
-        }else{
-            System.err.println("Please specify the id number which is greater than 0, exiting");
-            System.exit(1);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
     }
 
 
-    @Override
-    public void run() {
-        if (this.type==0){
-            listner();
-        }else if (this.type==1){
-            while (true) {
-                sendPackets();
+    public static int init(byte[] source) {
+        int len = source.length;
+        int actualDivs = len / chunk;
+        //Calculate what should be the chunk size for the final byte vals
+        return len - chunk * actualDivs;
+
+    }
+
+    public void checkforVals() {
+        while (true) {
+            if (initSuccessful) {
                 try {
-                    Thread.sleep(5000);
-                } catch (InterruptedException e) {
+                    DatagramSocket ds = new DatagramSocket(63002);
+                    DatagramPacket dp = null;
+                    InetAddress hostAdd = InetAddress.getLocalHost();
+                    String address = hostAdd.getHostAddress().trim();
+                    System.out.println("Listening on  " + address);
+                } catch (SocketException | UnknownHostException e) {
                     e.printStackTrace();
                 }
             }
-        }else if (this.type==2){
-            testRouterOutOfReach();
         }
     }
-}
 
+
+    public void sendingThread() {
+        try {
+            DatagramSocket ds = new DatagramSocket();
+            InetAddress ip = InetAddress.getLocalHost();
+
+
+            if (initSuccessful) {
+                //Need to change
+                while (seq < source.length) {
+                    if (pendingVals.isEmpty()) {
+                        intToBytes(send,seq,0);
+//                        send[4]=
+//                        intToBytes(send,);
+                    } else {
+                        System.out.println("Convert into 4 bytes to make this work");
+                    }
+                    int range = (seq == source.length - lastChunk ? lastChunk : chunk);
+                    for (int i = 1; i <= range; i++) {
+                        send[i] = source[seq];
+                        seq++;
+                    }
+//                System.out.println(seq==source.length-lastChunk?lastChunk-1:chunk);
+                    DatagramPacket dp = new DatagramPacket(send, send.length, ip, 63001);
+                    ds.send(dp);
+                }
+                done = true;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void run() {
+        //thread 1 for sending data
+        if (this.type == 0) {
+            sendingThread();
+        }//thread 2 for checking if any packet was dropped
+        else if (this.type == 1) {
+            checkforVals();
+        }
+    }
+
+
+    private static void intToBytes(byte[] input, int data, int start) {
+        input[start] = (byte) ((data >> 24) & 0xff);
+        input[start+1] = (byte) ((data >> 16) & 0xff);
+        input[start+2] = (byte) ((data >> 8) & 0xff);
+        input[start+3] = (byte) ((data >> 0) & 0xff);
+
+
+    }
+}
 

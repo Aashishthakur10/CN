@@ -10,5 +10,5 @@ node run/run.js $1 &
 sleep 10
 
 #finally, start the initial program
-java Main $1
+java manager $1 $2
 
