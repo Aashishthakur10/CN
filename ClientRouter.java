@@ -1,4 +1,4 @@
-//package Project3;
+package CN;
 
 
 import java.io.FileInputStream;
@@ -8,9 +8,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 public class ClientRouter implements Runnable {
-    //For those which weren't received
-    ArrayList<Integer> pendingVals = new ArrayList<>();
-
     //chunk static
     final static int chunk = 500;
     int type = 0;
