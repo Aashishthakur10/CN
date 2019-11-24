@@ -37,8 +37,7 @@ public class ServerRouter implements Runnable{
     public void receiveData(){
         FileOutputStream fos=null;
         try {
-//            DatagramSocket ds = new DatagramSocket(63001);
-//            DatagramPacket dp = null;
+
             InetAddress hostAdd  = InetAddress.getLocalHost();
             String address = hostAdd.getHostAddress().trim();
             System.out.println("Listening on  "+ address);
@@ -46,23 +45,16 @@ public class ServerRouter implements Runnable{
             byte[] receive = new byte[513];
             byte[] receive1 = new byte[8];
 
-
-//            dp = new DatagramPacket(receive1, receive1.length);
-//            ds.receive(dp);
-
             sendAndReceive s = new sendAndReceive(63001);
             s.receive(receive1);
 
             SIZE=getInt(receive1,0);
-//            System.out.println(SIZE);
             lastChunk  = getInt(receive1,4);
             file=new byte[SIZE];
             recvCheck = new boolean[SIZE];
 
             while (!finished){
 
-//                dp = new DatagramPacket(receive, receive.length);
-//                ds.receive(dp);
                 s.receive(receive);
                 int ack = receive[12];
                 destination = "" + (receive[4] & 0xFF) +"."+ (receive[5] & 0xFF)+"."
@@ -70,13 +62,11 @@ public class ServerRouter implements Runnable{
                 //Destination
                 System.out.println(destination);
                 InetAddress dest = InetAddress.getByName(destination);
-//                if (ack == 1){
-//                    ackD[0] = 0;
-//                    ds = new DatagramSocket();
-//                    dp = new DatagramPacket(ackD, ackD.length, dest, 63001);
-//                    ds.send(dp);
-//                    continue;
-//                }
+                if (ack == 1){
+                    ackD[0] = 0;
+                    sendAndReceive.send(63002,dest,ackD);
+                    continue;
+                }
 
                 System.out.println(dest+" dest");
                 seq = getInt(receive,0);
@@ -94,7 +84,8 @@ public class ServerRouter implements Runnable{
                 }
 
                 // Send acknowledgement as 1
-//                ackD[0]=1;
+                ackD[0]=1;
+                sendAndReceive.send(63002,dest,ackD);
 ////                DatagramSocket ds1 = new DatagramSocket(63001);
 //                DatagramPacket dp1 = new DatagramPacket(ackD, ackD.length, dest, 63001);
 //                ds.send(dp1);

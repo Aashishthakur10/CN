@@ -28,6 +28,7 @@ public class ClientRouter implements Runnable {
     private InetAddress ip;
     private FileInputStream content = null;
     public static byte[] ackD = new byte[1];
+    static sendAndReceive s;
 
     public String destination;
     public static String address;
@@ -48,37 +49,21 @@ public class ClientRouter implements Runnable {
             ByteBuffer bb = ByteBuffer.allocate(8);
             InetAddress hostAdd  = InetAddress.getLocalHost();
             address = hostAdd.getHostAddress().trim();
-
-            //Destination
-//                InetAddress ip = InetAddress.getByName(args[1]);
-//                content = new FileInputStream(new File(fname));
-//                source = content.readAllBytes();
-            //Last chunk
             lastChunk = init(source);
             DatagramSocket ds0 = new DatagramSocket();
             bb.putInt(source.length).putInt(lastChunk);
-//            bb.putInt(5).putInt(5);
             byte[] size = bb.array();
-//            DatagramPacket dp = new DatagramPacket(size, size.length, ip, 63001);
-//            ds0.send(dp);
             sendAndReceive.send(63001,ip,size);
+            s = new sendAndReceive(63002);
 
             //successfully sent check introduction needed
             initSuccessful = true;
             if (initSuccessful) {
                 sendingThread();
             }
-//                    Thread client = new Thread(new ClientRouter(0, lastChunk, args[1]));
-//                    client.start();
-//                    Thread checkArrayList = new Thread(new ClientRouter(1, lastChunk, args[1]));
-//                    checkArrayList.start();
 
             if (done)
                 content.close();
-//            } else {
-//                System.err.println("File name or Server IP not given");
-//                System.exit(1);
-//            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -94,9 +79,6 @@ public class ClientRouter implements Runnable {
     }
 
     public void sendingThread() {
-//        try {
-        // Receive ack
-        DatagramPacket dp1 = null;
         if (initSuccessful) {
             //Need to change
             while (seq < source.length) {
@@ -115,29 +97,19 @@ public class ClientRouter implements Runnable {
                 System.out.println(range);
                 for (int i = 13; i <= range + 12; i++) {
                     send[i] = source[temp];
-////                        send[i] = 1;
-//                        System.out.println(send[i]+" for index "+ temp);
-//                        System.out.println(seq+" i is "+ i);
                     temp++;
                 }
-//                    DatagramSocket ds = new DatagramSocket(63001);
-//                    DatagramPacket dp = new DatagramPacket(send, send.length, ip, 63001);
-//                    ds.send(dp);
-//                    asd
+                // send the packets.
                 sendAndReceive.send(63001,ip,send);
 
-
-//                    dp1 = new DatagramPacket(ackD, ackD.length);
-//                    System.out.println("listening");
-//                    ds.receive(dp1);
-////                    System.out.println(ackD[0]);
-
+//                    sendAndReceive s = new sendAndReceive(63010);
+                s.receive(ackD);
                 //new
                 if (ackD[0]==1){
                     seq = temp;
                 }
-                if (true)
-                    seq = temp;
+//                    if (true)
+//                        seq = temp;
 
             }
             done = true;
